@@ -1,175 +1,260 @@
-# Development Environment Setup and It's Automation 
+# Development Environment Setup and Automation
 
-In this repository, I am providing dot files and automation of some tools configuration.
+A modular, automated development environment installer managed via a **Makefile** control center and **Bash** scripts. Easily configure, audit, and install dotfiles and core developer tools across **macOS** and **Linux (Ubuntu/Debian)**.
 
-## Tools
- - tmux
- - vim
- - zsh
- - ohmyzsh
- - tailscale
- - ssh
- - vscode
+---
 
+## 🛠 Features & Supported Tools
 
-## Plan
+* **Tmux**: Sets prefix key (`Ctrl-a`), keybindings, pane/window navigation, mouse support, and automated plugin installation via [TPM](https://github.com/tmux-plugins/tpm) with [Dracula Theme](https://draculatheme.com/tmux).
+* **Vim**: Enables smart auto-indentation, line numbers, custom python binary commands, and plugin management via [Vundle](https://github.com/VundleVim/Vundle.vim) with [Dracula Theme](https://draculatheme.com/vim).
+* **Zsh & Oh My Zsh**: Installs Zsh, redirects `~/.bashrc`, configures [Oh My Zsh](https://ohmyz.sh/), and links the Dracula Zsh theme.
+* **Tailscale**: Automated installation via Homebrew (macOS) or official installation script (Linux).
+* **SSH**: Validates SSH tools, automatically generates Ed25519 keys (`~/.ssh/id_ed25519`) if missing, and copies public keys to remote servers (`ssh-copy-id`).
+* **VS Code**: Installs Visual Studio Code (via Homebrew Cask on macOS) and interactively authenticates GitHub account sync using GitHub CLI (`gh`).
 
- --> A bash script and a makefile setup!
+---
 
-This is basically a bash script where I can manage this with a makefile.  Makefile is a kind of control center of this setup. For instance, "make setup ssh" is going to generate a key for me and use this key to connect to my remote servers or tailscale node. 
+## 📁 Repository Structure
 
-The requirements for each of the tool is listed below.
-
-## Tmux
-
-```bash
-set-option -g prefix C-a
-
-# Easy config reload
-bind-key r source-file ~/.tmux.conf \; display-message "tmux-conf reloaded."
-
-# Use Alt-arrow keys without prefix key to siwtch panes
-bind -n M-Left select-pane -L
-bind -n M-Right select-pane -R
-bind -n M-Up select-pane -U
-bind -n M-Down select-pane -D
-
-# Set easier window split keys
-bind-key v split-window -h
-bind-key h split-window -v
-
-# Shift arrow to switch windows
-bind -n S-Left previous-window
-bind -n S-Right next-window
-
-# Easily reorder windows with CTRL+SHIFT+Arrow
-bind-key -n C-S-Left swap-window -t -1
-bind-key -n C-S-Right swap-window -t +1
-
-# TMUX Plugins
-# Easy config reload
-bind-key r source-file ~/.tmux.conf \; display-message "~/.tmux.conf reloaded."
-
-# Enable mouse mode
-set -g mouse on
-
-# List of plugins with tpm
-set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'tmux-plugins/tmux-sensible'
-set -g @plugin 'dracula/tmux'
-
-set -g @dracula-show-powerline true
-set -g @dracula-show-left-icon session
-
-set -g @dracula-plugins "cpu-usage ram-usage time battery"
-
-# enable copy to system clipboard
-set -g @plugin 'tmux-plugins/tmux-yank'
-
-# Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
-run '~/.tmux/plugins/tpm/tpm'
-
+```text
+dev_env_automation/
+├── README.md           # Documentation
+├── Makefile            # Control Center for setup & status checks
+├── setup.sh            # Core modular bash automation script
+├── Dockerfile          # Clean Linux (Ubuntu 24.04) container test environment
+├── Vagrantfile         # Clean Linux VM test environment
+└── dot_files/          # Dotfiles templates
+    ├── tmux/
+    │   └── .tmux.conf
+    └── vim/
+        └── .vimrc
 ```
 
-## Vim
+---
+
+## 🚀 Quick Start
+
+### 1. Download / Clone Repository
 
 ```bash
-
-
-" Enable filetype detection and plugins
-filetype plugin indent on
-
-" Use smart indentation (Python requires specific indentation)
-set autoindent
-set smartindent
-
-" Show line numbers
-set nu
-
-" Enable syntax highlighting
-syntax on
-
-"Python Specific Configuration"
-
-" Set a default of 4 spaces for a tab stop
-set tabstop=4
-
-" Set the number of spaces used for auto-indenting (shifting)
-set shiftwidth=4
-
-" When you press 'tab', insert spaces instead of a tab character
-set expandtab
-
-" Define a custom command to build with the 'torch' Conda environment
-command! BWtorch execute "!/opt/homebrew/Caskroom/miniforge/base/envs/torch/bin/python %"
-
-" Try setting a dark background
-" set background=dark
-
-" =======================================
-" VUNDLE SETUP
-" =======================================
-
-" Set runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
-
-" The following line is essential!
-" Let Vundle manage Vundle itself
-Plugin 'VundleVim/Vundle.vim'
-
-" All your plugins must be added between call vundle#begin() and call vundle#end()
-
-" =======================================
-" YOUR FUTURE PYTHON PLUGINS GO HERE
-" =======================================
-
-" All non-plugin configurations go after call vundle#end()
-call vundle#end()
-
-" Dracula theme setup
-Plugin 'dracula/vim', { 'name': 'dracula' }
-
-
-" =======================================
-" END VUNDLE SETUP
-" =======================================
-
-" (Keep your old Python configuration settings below this block)
-
+git clone https://github.com/your-username/dev_env_automation.git
+cd dev_env_automation
 ```
 
-## Zsh
+### 2. View Available Commands
 
-Install the zsh with package manager and redirect ~/.bashrc file to this file.
+```bash
+make help
+```
 
-## oh-my-zsh
+---
 
-This is a plugin for zsh that provides a lot of features, such as:
-- Auto-completion
-- Syntax highlighting
-- Plugins
-- Themes
+## 📖 Command Reference & Sample Outputs
 
-Install the oh-my-zsh with package manager and setup dracula theme in zsh.
+Below is the detailed reference of all available `make` targets along with their expected outputs.
 
-## Tailscale
+### 1. `make help`
+Displays the control center menu with descriptions for all available targets.
 
-Tailscale is my remote access tool. I use it to connect to my home server and other devices. Install the tailscale with package manager and setup ssh connection to my devices.
+**Sample Output:**
+```text
+Development Environment Automation - Makefile Control Center
 
-## SSH
+Usage:
+  make <target>
 
-SSH is a great tool to use for connecting remote devices. Check the system if ssh is installed or not. If not, install it. Also generate an ssh key one and share this key (copy) to your remote servers. Use `ssh-copy-id [EMAIL_ADDRESS]` to copy the key to the remote server. Since my remote servers are changing a lot. It's better to keep the email address and remote server IP address user input than complete the rest of the automated steps.
+Available Targets:
+  help            Display available commands
+  all             Run complete setup for all tools
+  check           Run system and tool status checks
+  check-os        Check exact operating system match
+  check-tmux      Check if tmux is installed, dotfile placed, and install plugins
+  check-vscode    Check if VSCode is installed & verify/authenticate GitHub account interactively
+  check-vim       Check vim status and dotfile placement
+  tmux            Install and configure Tmux with plugins
+  vim             Install and configure Vim with plugins
+  zsh             Install Zsh and configure redirection
+  ohmyzsh         Install Oh My Zsh and Dracula theme
+  tailscale       Install Tailscale
+  ssh             Check/generate SSH key and share to remote host (usage: make ssh USER_HOST=user@ip)
+  vscode          Install Visual Studio Code
+  docker-build    Build test Linux container
+  docker-test     Mount and test dev_env_automation inside clean Linux container
+  docker-shell    Launch interactive shell inside clean Linux container
+```
 
+---
 
-## VSCode
+### 2. `make check-os`
+Detects and prints the exact operating system and architecture match.
 
-Check if the system has vscode installed. If not, based on the operating system download it from the official website and install it. For mac, you can use homebrew to install it. `brew install --cask visual-studio-code`. Since all the features including configurations and extensions are synced through GitHub account, I can just login to the GitHub account and get all the settings and extensions. So I don't need to configure anything else after installing vscode.
+**Sample Output:**
+```text
+[INFO] Detecting Operating System...
+OS: macOS (arm64)
+```
 
+---
 
-## Deliverables
+### 3. `make check-tmux`
+Checks if `tmux` is installed, verifies `~/.tmux.conf` placement, checks TPM directory, and automatically triggers TPM plugin installation.
 
- - Bash script where all the functions and setup for automation are implemented.
- - Makefile where either system check, testing configurations, or applying them to the system, or running `make help` to see available commands. 
- - Create a dot files folder and all the dot files for each tool as separate folders. For example, all the tmux configurations inside `dot_files/tmux` folder, all the vim configurations inside `dot_files/vim` folder etc. 
+**Sample Output:**
+```text
+[INFO] Checking Tmux status...
+[SUCCESS] Tmux is installed: tmux 3.7b
+[SUCCESS] ~/.tmux.conf exists at correct path.
+[SUCCESS] TPM plugin manager directory exists.
+[INFO] Running TPM plugin installer...
+Already installed "tpm"
+Already installed "tmux-sensible"
+Already installed "tmux"
+Already installed "tmux-yank"
+```
 
+---
+
+### 4. `make check-vim`
+Audits Vim installation and checks if `~/.vimrc` is deployed.
+
+**Sample Output:**
+```text
+[INFO] Checking Vim status...
+[SUCCESS] Vim is installed.
+[SUCCESS] ~/.vimrc exists.
+```
+
+---
+
+### 5. `make check-vscode`
+Verifies VS Code installation and checks GitHub CLI (`gh`) authentication status. If unauthenticated, launches an interactive login session.
+
+**Sample Output:**
+```text
+[INFO] Checking VSCode installation & GitHub login...
+[SUCCESS] VSCode is installed on the system.
+[INFO] Checking GitHub authentication via gh CLI...
+[SUCCESS] GitHub CLI is authenticated!
+```
+
+---
+
+### 6. `make check`
+Runs all system status and configuration checks sequentially (`check-os`, `check-tmux`, `check-vim`, `check-vscode`).
+
+**Sample Output:**
+```text
+[INFO] Detecting Operating System...
+OS: macOS (arm64)
+[INFO] Checking Tmux status...
+[SUCCESS] Tmux is installed: tmux 3.7b
+[SUCCESS] ~/.tmux.conf exists at correct path.
+[SUCCESS] TPM plugin manager directory exists.
+[INFO] Running TPM plugin installer...
+Already installed "tpm"
+Already installed "tmux-sensible"
+Already installed "tmux"
+Already installed "tmux-yank"
+[INFO] Checking Vim status...
+[SUCCESS] Vim is installed.
+[SUCCESS] ~/.vimrc exists.
+[INFO] Checking VSCode installation & GitHub login...
+[SUCCESS] VSCode is installed on the system.
+[INFO] Checking GitHub authentication via gh CLI...
+[SUCCESS] GitHub CLI is authenticated!
+```
+
+---
+
+### 7. Component Specific Setup Commands
+
+#### `make tmux`
+Deploys `dot_files/tmux/.tmux.conf` to `~/.tmux.conf`, clones TPM if missing, and installs plugins.
+
+**Sample Output:**
+```text
+[INFO] Setting up Tmux...
+[INFO] Copying tmux configuration...
+[SUCCESS] Placed ~/.tmux.conf
+[INFO] Installing tmux plugins via TPM...
+Already installed "tpm"
+Already installed "tmux-sensible"
+Already installed "tmux"
+Already installed "tmux-yank"
+[SUCCESS] Tmux setup complete!
+```
+
+#### `make vim`
+Deploys `dot_files/vim/.vimrc` to `~/.vimrc`, clones Vundle if missing, and runs plugin installation.
+
+**Sample Output:**
+```text
+[INFO] Setting up Vim...
+[SUCCESS] Placed ~/.vimrc
+[INFO] Installing Vim plugins via Vundle...
+[SUCCESS] Vim setup complete!
+```
+
+#### `make zsh`
+Installs Zsh and configures bash shell redirection in `~/.bashrc`.
+
+#### `make ohmyzsh`
+Installs Oh My Zsh and configures the Dracula theme.
+
+#### `make tailscale`
+Installs Tailscale using your system package manager (`brew` or `apt`).
+
+#### `make ssh`
+Checks for SSH keys, generates Ed25519 keys if absent, and optionally prompts for remote target (`user@remote_ip`) to copy your key.
+
+**Usage with arguments:**
+```bash
+make ssh USER_HOST=user@192.168.1.50
+```
+
+**Sample Output:**
+```text
+[INFO] Setting up SSH...
+[INFO] Existing SSH key found in ~/.ssh/
+[INFO] Copying SSH key to remote server: user@192.168.1.50...
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now, it is to install the new keys
+user@192.168.1.50's password: 
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with: "ssh 'user@192.168.1.50'"
+and check to make sure that only the key(s) you wanted were added.
+```
+
+#### `make vscode`
+Installs Visual Studio Code (via Homebrew on macOS).
+
+---
+
+### 8. `make all`
+Runs the complete setup pipeline for all tools (`check-os`, `tmux`, `vim`, `zsh`, `ohmyzsh`, `tailscale`, `ssh`, `vscode`).
+
+---
+
+## 🧪 Testing in Clean Linux Environments
+
+You can test this setup in clean Ubuntu environments without altering your host system.
+
+### Option A: Docker (Recommended)
+```bash
+# Run automated test inside clean container
+make docker-test
+
+# Or enter an interactive shell in Ubuntu 24.04 container
+make docker-shell
+```
+
+### Option B: Vagrant VM
+```bash
+vagrant up
+vagrant ssh
+cd /vagrant
+make check
+```
