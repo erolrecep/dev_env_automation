@@ -1,0 +1,288 @@
+#!/usr/bin/env bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="${SCRIPT_DIR}/dot_files"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+get_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macOS ($(uname -m))"
+    elif [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        echo "$PRETTY_NAME"
+    else
+        uname -s
+    fi
+}
+
+check_os() {
+    log_info "Detecting Operating System..."
+    echo -e "OS: ${GREEN}$(get_os)${NC}"
+}
+
+install_pkg() {
+    local pkg=$1
+    if command -v brew >/dev/null 2>&1; then
+        brew install "$pkg" || true
+    elif command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update -y && sudo apt-get install -y "$pkg" || true
+    else
+        log_error "No supported package manager found (brew/apt)."
+        return 1
+    fi
+}
+
+# --- TMUX ---
+setup_tmux() {
+    log_info "Setting up Tmux..."
+    if ! command -v tmux >/dev/null 2>&1; then
+        log_info "Installing tmux..."
+        install_pkg tmux
+    fi
+
+    log_info "Copying tmux configuration..."
+    mkdir -p ~/.tmux
+    cp "${DOTFILES_DIR}/tmux/.tmux.conf" ~/.tmux.conf
+    log_success "Placed ~/.tmux.conf"
+
+    if [ ! -d ~/.tmux/plugins/tpm ]; then
+        log_info "Cloning Tmux Plugin Manager (TPM)..."
+        git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+    fi
+
+    log_info "Installing tmux plugins via TPM..."
+    ~/.tmux/plugins/tpm/bin/install_plugins || true
+    log_success "Tmux setup complete!"
+}
+
+check_tmux() {
+    log_info "Checking Tmux status..."
+    local status=0
+
+    if command -v tmux >/dev/null 2>&1; then
+        log_success "Tmux is installed: $(tmux -V)"
+    else
+        log_error "Tmux is NOT installed."
+        status=1
+    fi
+
+    if [ -f ~/.tmux.conf ]; then
+        log_success "~/.tmux.conf exists at correct path."
+    else
+        log_warn "~/.tmux.conf is missing."
+        status=1
+    fi
+
+    if [ -d ~/.tmux/plugins/tpm ]; then
+        log_success "TPM plugin manager directory exists."
+        log_info "Running TPM plugin installer..."
+        ~/.tmux/plugins/tpm/bin/install_plugins || true
+    else
+        log_warn "TPM plugin manager is missing (~/.tmux/plugins/tpm)."
+        status=1
+    fi
+
+    return $status
+}
+
+# --- VIM ---
+setup_vim() {
+    log_info "Setting up Vim..."
+    if ! command -v vim >/dev/null 2>&1; then
+        install_pkg vim
+    fi
+
+    cp "${DOTFILES_DIR}/vim/.vimrc" ~/.vimrc
+    log_success "Placed ~/.vimrc"
+
+    if [ ! -d ~/.vim/bundle/Vundle.vim ]; then
+        log_info "Cloning Vundle..."
+        git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+    fi
+
+    log_info "Installing Vim plugins via Vundle..."
+    vim +PluginInstall +qall || true
+    log_success "Vim setup complete!"
+}
+
+check_vim() {
+    log_info "Checking Vim status..."
+    if command -v vim >/dev/null 2>&1; then
+        log_success "Vim is installed."
+    else
+        log_error "Vim is NOT installed."
+    fi
+
+    if [ -f ~/.vimrc ]; then
+        log_success "~/.vimrc exists."
+    else
+        log_warn "~/.vimrc is missing."
+    fi
+}
+
+# --- ZSH & OH-MY-ZSH ---
+setup_zsh() {
+    log_info "Setting up Zsh..."
+    if ! command -v zsh >/dev/null 2>&1; then
+        install_pkg zsh
+    fi
+
+    if [ -f ~/.bashrc ]; then
+        if ! grep -q "exec zsh" ~/.bashrc; then
+            log_info "Adding zsh redirection to ~/.bashrc..."
+            echo -e "\n# Redirect to zsh\nif [ -t 1 ] && command -v zsh >/dev/null 2>&1; then\n  exec zsh\nfi" >> ~/.bashrc
+        fi
+    fi
+    log_success "Zsh setup complete!"
+}
+
+setup_ohmyzsh() {
+    log_info "Setting up Oh My Zsh..."
+    if [ ! -d ~/.oh-my-zsh ]; then
+        log_info "Installing Oh My Zsh..."
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    fi
+
+    # Dracula Theme for Oh My Zsh
+    log_info "Setting up Dracula theme for Oh My Zsh..."
+    ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+    mkdir -p "$ZSH_CUSTOM/themes"
+    if [ ! -d "$ZSH_CUSTOM/themes/dracula" ]; then
+        git clone https://github.com/dracula/zsh.git "$ZSH_CUSTOM/themes/dracula" || true
+    fi
+    ln -sf "$ZSH_CUSTOM/themes/dracula/dracula.zsh-theme" "$ZSH_CUSTOM/themes/dracula.zsh-theme"
+
+    if [ -f ~/.zshrc ]; then
+        sed -i '' 's/ZSH_THEME=".*"/ZSH_THEME="dracula"/g' ~/.zshrc || sed -i 's/ZSH_THEME=".*"/ZSH_THEME="dracula"/g' ~/.zshrc
+    fi
+
+    log_success "Oh My Zsh setup complete!"
+}
+
+# --- TAILSCALE ---
+setup_tailscale() {
+    log_info "Setting up Tailscale..."
+    if command -v brew >/dev/null 2>&1; then
+        brew install tailscale
+    elif command -v apt-get >/dev/null 2>&1; then
+        curl -fsSL https://tailscale.com/install.sh | sh
+    else
+        log_error "Please install Tailscale manually for your distribution."
+    fi
+    log_success "Tailscale setup complete!"
+}
+
+# --- SSH ---
+setup_ssh() {
+    log_info "Setting up SSH..."
+    if ! command -v ssh >/dev/null 2>&1; then
+        install_pkg openssh-client || install_pkg openssh
+    fi
+
+    if [ ! -f ~/.ssh/id_ed25519 ] && [ ! -f ~/.ssh/id_rsa ]; then
+        log_info "Generating new SSH key (Ed25519)..."
+        ssh-keygen -t ed25519 -C "dev-env-automation" -f ~/.ssh/id_ed25519 -N ""
+        log_success "Generated SSH key at ~/.ssh/id_ed25519"
+    else
+        log_info "Existing SSH key found in ~/.ssh/"
+    fi
+
+    if [ -n "$1" ]; then
+        local user_host="$1"
+        log_info "Copying SSH key to remote server: ${user_host}..."
+        ssh-copy-id "$user_host" || true
+    else
+        read -p "Enter remote server target (e.g. user@remote_ip) or press Enter to skip: " user_host
+        if [ -n "$user_host" ]; then
+            ssh-copy-id "$user_host" || true
+        fi
+    fi
+}
+
+# --- VSCODE & GITHUB AUTH ---
+setup_vscode() {
+    log_info "Setting up VSCode..."
+    if ! command -v code >/dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Code.app" ]; then
+        if command -v brew >/dev/null 2>&1; then
+            brew install --cask visual-studio-code
+        else
+            log_warn "Please download VS Code from https://code.visualstudio.com/ for your system."
+        fi
+    else
+        log_success "VSCode is installed."
+    fi
+}
+
+check_vscode() {
+    log_info "Checking VSCode installation & GitHub login..."
+    local status=0
+
+    if command -v code >/dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then
+        log_success "VSCode is installed on the system."
+    else
+        log_error "VSCode is NOT installed."
+        status=1
+    fi
+
+    if ! command -v gh >/dev/null 2>&1; then
+        log_info "GitHub CLI (gh) is not installed. Installing gh..."
+        install_pkg gh
+    fi
+
+    if command -v gh >/dev/null 2>&1; then
+        log_info "Checking GitHub authentication via gh CLI..."
+        if gh auth status >/dev/null 2>&1; then
+            log_success "GitHub CLI is authenticated!"
+        else
+            log_warn "GitHub authentication not detected."
+            log_info "Starting interactive GitHub login ('gh auth login')..."
+            gh auth login
+        fi
+    else
+        log_error "Could not install GitHub CLI (gh)."
+        status=1
+    fi
+
+    return $status
+}
+
+case "$1" in
+    get_os) get_os ;;
+    check_os) check_os ;;
+    tmux) setup_tmux ;;
+    check_tmux) check_tmux ;;
+    vim) setup_vim ;;
+    check_vim) check_vim ;;
+    zsh) setup_zsh ;;
+    ohmyzsh) setup_ohmyzsh ;;
+    tailscale) setup_tailscale ;;
+    ssh) setup_ssh "$2" ;;
+    vscode) setup_vscode ;;
+    check_vscode) check_vscode ;;
+    all)
+        check_os
+        setup_tmux
+        setup_vim
+        setup_zsh
+        setup_ohmyzsh
+        setup_tailscale
+        setup_ssh "$2"
+        setup_vscode
+        ;;
+    *)
+        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|tailscale|ssh|vscode|check_vscode|all}"
+        exit 1
+        ;;
+esac
