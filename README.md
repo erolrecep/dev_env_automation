@@ -10,6 +10,8 @@ A modular, automated development environment installer managed via a **Makefile*
 * **Vim**: Enables smart auto-indentation, line numbers, custom python binary commands, and plugin management via [Vundle](https://github.com/VundleVim/Vundle.vim) with [Dracula Theme](https://draculatheme.com/vim).
 * **Zsh & Oh My Zsh**: Installs Zsh, redirects `~/.bashrc`, configures [Oh My Zsh](https://ohmyz.sh/), and links the Dracula Zsh theme.
 * **Tailscale**: Automated installation via Homebrew (macOS) or official installation script (Linux).
+* **Python 3 & Virtualenvwrapper**: Installs Python 3, `virtualenv`, and `virtualenvwrapper`. Automatically configures `WORKON_HOME` and sources `virtualenvwrapper.sh` in `~/.zshrc` and `~/.bashrc` to enable `mkvirtualenv`, `lsvirtualenv`, and `workon`.
+* **Miniforge (Conda & Mamba)**: Downloads the latest architecture-specific Miniforge installer, installs it to `~/miniforge3`, and initializes shell integration for `conda` and `mamba`.
 * **Swap Management**: Configures total system swap memory size (e.g., `make swap-increase 8` sets total swap target to 8 GB). Supports Raspberry Pi (`dphys-swapfile`) and standard Linux `/swapfile` calculation.
 * **SSH**: Validates SSH tools, automatically generates Ed25519 keys (`~/.ssh/id_ed25519`) if missing, and copies public keys to remote servers (`ssh-copy-id`).
 * **VS Code**: Installs Visual Studio Code (via Homebrew Cask on macOS) and interactively authenticates GitHub account sync using GitHub CLI (`gh`).
@@ -66,24 +68,26 @@ Usage:
   make <target>
 
 Available Targets:
-  help            Display available commands
-  all             Run complete setup for all tools
-  check           Run system and tool status checks
-  check-os        Check exact operating system match
-  check-tmux      Check if tmux is installed, dotfile placed, and install plugins
-  check-vscode    Check if VSCode is installed & verify/authenticate GitHub account interactively
-  check-vim       Check vim status and dotfile placement
-  tmux            Install and configure Tmux with plugins
-  vim             Install and configure Vim with plugins
-  zsh             Install Zsh and configure redirection
-  ohmyzsh         Install Oh My Zsh and Dracula theme
-  tailscale       Install Tailscale
-  ssh             Check/generate SSH key and share to remote host (usage: make ssh USER_HOST=user@ip)
-  vscode          Install Visual Studio Code
-  swap-increase   Increase swap size in GB (usage: make swap-increase SIZE=8 or make swap-increase 8)
-  docker-build    Build test Linux container
-  docker-test     Mount and test dev_env_automation inside clean Linux container
-  docker-shell    Launch interactive shell inside clean Linux container
+  help                 Display available commands
+  all                  Run complete setup for all tools
+  check                Run system and tool status checks
+  check-os             Check exact operating system match
+  check-tmux           Check if tmux is installed, dotfile placed, and install plugins
+  check-vscode         Check if VSCode is installed & verify/authenticate GitHub account interactively
+  check-vim            Check vim status and dotfile placement
+  tmux                 Install and configure Tmux with plugins
+  vim                  Install and configure Vim with plugins
+  zsh                  Install Zsh and configure redirection
+  ohmyzsh              Install Oh My Zsh and Dracula theme
+  tailscale            Install Tailscale
+  ssh                  Check/generate SSH key and share to remote host (usage: make ssh USER_HOST=user@ip)
+  vscode               Install Visual Studio Code
+  python3-setup        Install Python 3, virtualenv, virtualenvwrapper & update zshrc/bashrc
+  python3-miniforge    Download and configure Miniforge with mamba and conda
+  swap-increase        Increase swap size in GB (usage: make swap-increase SIZE=8 or make swap-increase 8)
+  docker-build         Build test Linux container
+  docker-test          Mount and test dev_env_automation inside clean Linux container
+  docker-shell         Launch interactive shell inside clean Linux container
 ```
 
 ---
@@ -231,7 +235,13 @@ and check to make sure that only the key(s) you wanted were added.
 ```
 
 #### `make vscode`
-Installs Visual Studio Code (via Homebrew on macOS).
+Installs Visual Studio Code (via Homebrew on macOS or official Microsoft repositories on Linux).
+
+#### `make python3-setup`
+Installs Python 3, `virtualenv`, and `virtualenvwrapper`. On Ubuntu/Debian systems, it adds the **[deadsnakes PPA](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa)** (`ppa:deadsnakes/ppa`) and installs multiple Python versions (`python3.8` through `python3.13` with their `-venv` and `-distutils` packages). Automatically adds `WORKON_HOME` and sources `virtualenvwrapper.sh` in `~/.zshrc` and `~/.bashrc` to make `mkvirtualenv` (e.g. `mkvirtualenv -p python3.9 myenv`), `lsvirtualenv`, `workon`, and `rmvirtualenv` ready to use.
+
+#### `make python3-miniforge`
+Downloads the latest release of [Miniforge](https://github.com/conda-forge/miniforge) for your operating system and architecture, installs it to `~/miniforge3`, and initializes shell integration for `conda` and `mamba`.
 
 #### `make swap-increase`
 Increases the swap file size on Raspberry Pi (Raspberry Pi OS / `dphys-swapfile`) or Linux systems (`/swapfile`).

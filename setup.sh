@@ -317,6 +317,121 @@ setup_swap() {
     fi
 }
 
+# --- PYTHON3 & VIRTUALENVWRAPPER ---
+setup_python3() {
+    log_info "Setting up Python 3, virtualenv, and virtualenvwrapper..."
+    if command -v brew >/dev/null 2>&1; then
+        brew install python3 || true
+    elif command -v apt-get >/dev/null 2>&1; then
+        local sudo_cmd=""
+        if command -v sudo >/dev/null 2>&1; then sudo_cmd="sudo"; fi
+        $sudo_cmd apt-get update -y
+        $sudo_cmd apt-get install -y software-properties-common python3 python3-pip python3-venv python3-full || true
+
+        # Add deadsnakes PPA if supported (Ubuntu / Debian derivatives)
+        log_info "Checking and adding deadsnakes PPA for additional Python 3 versions..."
+        $sudo_cmd add-apt-repository -y ppa:deadsnakes/ppa 2>/dev/null || true
+        $sudo_cmd apt-get update -y || true
+
+        log_info "Installing multiple Python versions via deadsnakes (python3.8 - python3.12)..."
+        for pyver in 3.8 3.9 3.10 3.11 3.12 3.13; do
+            $sudo_cmd apt-get install -y "python${pyver}" "python${pyver}-venv" "python${pyver}-distutils" 2>/dev/null || true
+        done
+    elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+        local sudo_cmd=""
+        if command -v sudo >/dev/null 2>&1; then sudo_cmd="sudo"; fi
+        if command -v dnf >/dev/null 2>&1; then
+            $sudo_cmd dnf install -y python3 python3-pip || true
+        else
+            $sudo_cmd yum install -y python3 python3-pip || true
+        fi
+    fi
+
+    log_info "Installing virtualenv and virtualenvwrapper..."
+    python3 -m pip install --upgrade pip --break-system-packages 2>/dev/null || python3 -m pip install --upgrade pip || true
+    python3 -m pip install virtualenv virtualenvwrapper --break-system-packages 2>/dev/null || python3 -m pip install virtualenv virtualenvwrapper || true
+
+    log_info "Configuring virtualenvwrapper environment in shell config files..."
+    local venv_dir="$HOME/.virtualenvs"
+    mkdir -p "$venv_dir"
+
+    # Find virtualenvwrapper.sh path
+    local venv_script=""
+    local possible_paths=(
+        "$(which virtualenvwrapper.sh 2>/dev/null)"
+        "$HOME/.local/bin/virtualenvwrapper.sh"
+        "/usr/local/bin/virtualenvwrapper.sh"
+        "/usr/bin/virtualenvwrapper.sh"
+        "/opt/homebrew/bin/virtualenvwrapper.sh"
+    )
+
+    for p in "${possible_paths[@]}"; do
+        if [ -n "$p" ] && [ -f "$p" ]; then
+            venv_script="$p"
+            break
+        fi
+    done
+
+    local python_bin
+    python_bin=$(command -v python3 || echo "/usr/bin/python3")
+
+    local venv_block="
+# Virtualenvwrapper configuration
+export WORKON_HOME=\$HOME/.virtualenvs
+export VIRTUALENVWRAPPER_PYTHON=$python_bin
+if [ -f \"$venv_script\" ]; then
+    source \"$venv_script\"
+elif [ -f \"\$HOME/.local/bin/virtualenvwrapper.sh\" ]; then
+    source \"\$HOME/.local/bin/virtualenvwrapper.sh\"
+fi
+"
+
+    for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
+        if [ -f "$rc" ] || [ "$rc" == "$HOME/.zshrc" ]; then
+            touch "$rc"
+            if ! grep -q "VIRTUALENVWRAPPER_PYTHON" "$rc"; then
+                echo "$venv_block" >> "$rc"
+                log_success "Added virtualenvwrapper configuration to $rc"
+            fi
+        fi
+    done
+
+    log_success "Python 3 setup complete! Available commands after reloading shell: mkvirtualenv, lsvirtualenv, workon, rmvirtualenv"
+}
+
+# --- MINIFORGE (CONDA/MAMBA) ---
+setup_miniforge() {
+    log_info "Setting up Miniforge (Conda & Mamba)..."
+    local target_dir="$HOME/miniforge3"
+
+    if [ -d "$target_dir" ]; then
+        log_success "Miniforge is already installed at $target_dir"
+    else
+        local arch
+        arch=$(uname -m)
+        local os_name
+        os_name=$(uname -s)
+
+        local url="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-${os_name}-${arch}.sh"
+        log_info "Downloading Miniforge installer from ${url}..."
+        
+        local installer_sh="/tmp/Miniforge3.sh"
+        curl -fsSL "$url" -o "$installer_sh" || wget -qO "$installer_sh" "$url"
+        chmod +x "$installer_sh"
+
+        log_info "Running Miniforge installer..."
+        bash "$installer_sh" -b -p "$target_dir"
+        rm -f "$installer_sh"
+        log_success "Miniforge installed to $target_dir"
+    fi
+
+    log_info "Initializing Conda & Mamba shell integration..."
+    "$target_dir/bin/conda" init zsh bash || true
+    "$target_dir/bin/mamba" init zsh bash || true
+
+    log_success "Miniforge setup complete! Conda & Mamba configured."
+}
+
 check_vscode() {
     log_info "Checking VSCode installation & GitHub login..."
     local status=0
@@ -364,6 +479,8 @@ case "$1" in
     vscode) setup_vscode ;;
     check_vscode) check_vscode ;;
     swap) setup_swap "$2" ;;
+    python3-setup) setup_python3 ;;
+    python3-miniforge) setup_miniforge ;;
     all)
         check_os
         setup_tmux
@@ -373,9 +490,10 @@ case "$1" in
         setup_tailscale
         setup_ssh "$2"
         setup_vscode
+        setup_python3
         ;;
     *)
-        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|tailscale|ssh|vscode|check_vscode|swap|all}"
+        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|tailscale|ssh|vscode|check_vscode|swap|python3-setup|python3-miniforge|all}"
         exit 1
         ;;
 esac

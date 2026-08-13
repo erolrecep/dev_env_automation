@@ -12,7 +12,7 @@ help: ## Display available commands
 	@echo "  make <target>"
 	@echo ""
 	@echo "Available Targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 all: ## Run complete setup for all tools
 	@$(SETUP_SCRIPT) all
@@ -51,6 +51,12 @@ ssh: ## Check/generate SSH key and share to remote host (usage: make ssh USER_HO
 
 vscode: ## Install Visual Studio Code
 	@$(SETUP_SCRIPT) vscode
+
+python3-setup: ## Install Python 3, virtualenv, virtualenvwrapper & update zshrc/bashrc
+	@$(SETUP_SCRIPT) python3-setup
+
+python3-miniforge: ## Download and configure Miniforge with mamba and conda
+	@$(SETUP_SCRIPT) python3-miniforge
 
 swap-increase: ## Increase swap size in GB (usage: make swap-increase SIZE=8 or make swap-increase 8)
 	@SIZE="$(filter-out $@,$(MAKECMDGOALS))"; \
