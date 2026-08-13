@@ -254,7 +254,8 @@ setup_swap() {
         fi
 
         $sudo_cmd swapoff "$swap_path" 2>/dev/null || true
-        $sudo_cmd fallocate -l "${size_gb}G" "$swap_path" 2>/dev/null || $sudo_cmd dd if=/dev/zero of="$swap_path" bs=1M count=$((size_gb * 1024)) status=progress
+        $sudo_cmd rm -f "$swap_path"
+        $sudo_cmd dd if=/dev/zero of="$swap_path" bs=1M count=$((size_gb * 1024)) status=progress
         $sudo_cmd chmod 600 "$swap_path"
         $sudo_cmd mkswap "$swap_path"
         $sudo_cmd swapon "$swap_path"
