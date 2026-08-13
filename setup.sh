@@ -336,9 +336,11 @@ setup_python3() {
         log_info "Installing multiple Python versions via deadsnakes (python3.8 - python3.13)..."
         for pyver in 3.8 3.9 3.10 3.11 3.12 3.13; do
             local pkgs=()
-            if apt-cache show "python${pyver}" >/dev/null 2>&1; then pkgs+=("python${pyver}"); fi
-            if apt-cache show "python${pyver}-venv" >/dev/null 2>&1; then pkgs+=("python${pyver}-venv"); fi
-            if apt-cache show "python${pyver}-distutils" >/dev/null 2>&1; then pkgs+=("python${pyver}-distutils"); fi
+            # apt-cache pkgnames lists exact matches. We filter exact strings.
+            if apt-cache pkgnames "python${pyver}" | grep -xE "python${pyver}" >/dev/null 2>&1; then pkgs+=("python${pyver}"); fi
+            if apt-cache pkgnames "python${pyver}-venv" | grep -xE "python${pyver}-venv" >/dev/null 2>&1; then pkgs+=("python${pyver}-venv"); fi
+            if apt-cache pkgnames "python${pyver}-distutils" | grep -xE "python${pyver}-distutils" >/dev/null 2>&1; then pkgs+=("python${pyver}-distutils"); fi
+            
             if [ ${#pkgs[@]} -gt 0 ]; then
                 $sudo_cmd apt-get install -y --no-install-recommends "${pkgs[@]}" || true
             fi
