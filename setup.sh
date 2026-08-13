@@ -214,14 +214,45 @@ setup_ssh() {
 # --- VSCODE & GITHUB AUTH ---
 setup_vscode() {
     log_info "Setting up VSCode..."
-    if ! command -v code >/dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Code.app" ]; then
-        if command -v brew >/dev/null 2>&1; then
-            brew install --cask visual-studio-code
+    if command -v code >/dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then
+        log_success "VSCode is already installed."
+        return 0
+    fi
+
+    if command -v brew >/dev/null 2>&1; then
+        log_info "Installing VS Code via Homebrew..."
+        brew install --cask visual-studio-code
+    elif command -v apt-get >/dev/null 2>&1; then
+        log_info "Installing VS Code via Microsoft APT repository..."
+        local sudo_cmd=""
+        if command -v sudo >/dev/null 2>&1; then sudo_cmd="sudo"; fi
+
+        $sudo_cmd apt-get update -y
+        $sudo_cmd apt-get install -y wget gpg apt-transport-https
+        wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
+        $sudo_cmd install -D -o root -g root -m 644 /tmp/packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+        $sudo_cmd sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
+        rm -f /tmp/packages.microsoft.gpg
+        $sudo_cmd apt-get update -y
+        $sudo_cmd apt-get install -y code
+    elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+        log_info "Installing VS Code via Microsoft RPM repository..."
+        local sudo_cmd=""
+        if command -v sudo >/dev/null 2>&1; then sudo_cmd="sudo"; fi
+        $sudo_cmd rpm --import https://packages.microsoft.com/keys/microsoft.asc
+        $sudo_cmd sh -c 'echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/vscode.repo'
+        if command -v dnf >/dev/null 2>&1; then
+            $sudo_cmd dnf check-update || true
+            $sudo_cmd dnf install -y code
         else
-            log_warn "Please download VS Code from https://code.visualstudio.com/ for your system."
+            $sudo_cmd yum install -y code
         fi
     else
-        log_success "VSCode is installed."
+        log_warn "No supported package manager found to install VSCode automatically."
+    fi
+
+    if command -v code >/dev/null 2>&1; then
+        log_success "VSCode installed successfully!"
     fi
 }
 
