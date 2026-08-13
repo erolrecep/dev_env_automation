@@ -52,6 +52,15 @@ ssh: ## Check/generate SSH key and share to remote host (usage: make ssh USER_HO
 vscode: ## Install Visual Studio Code
 	@$(SETUP_SCRIPT) vscode
 
+swap-increase: ## Increase swap size in GB (usage: make swap-increase SIZE=8 or make swap-increase 8)
+	@SIZE="$(filter-out $@,$(MAKECMDGOALS))"; \
+	if [ -z "$$SIZE" ]; then SIZE="$(SIZE)"; fi; \
+	if [ -z "$$SIZE" ]; then SIZE=8; fi; \
+	$(SETUP_SCRIPT) swap "$$SIZE"
+
+%:
+	@:
+
 docker-build: ## Build test Linux container
 	docker build -t dev-env-test .
 

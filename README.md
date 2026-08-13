@@ -10,6 +10,7 @@ A modular, automated development environment installer managed via a **Makefile*
 * **Vim**: Enables smart auto-indentation, line numbers, custom python binary commands, and plugin management via [Vundle](https://github.com/VundleVim/Vundle.vim) with [Dracula Theme](https://draculatheme.com/vim).
 * **Zsh & Oh My Zsh**: Installs Zsh, redirects `~/.bashrc`, configures [Oh My Zsh](https://ohmyz.sh/), and links the Dracula Zsh theme.
 * **Tailscale**: Automated installation via Homebrew (macOS) or official installation script (Linux).
+* **Swap Management**: Dynamically increase swap memory size (e.g., `make swap-increase 8` for 8 GB). Supports Raspberry Pi (`dphys-swapfile`) and standard Linux `/swapfile`.
 * **SSH**: Validates SSH tools, automatically generates Ed25519 keys (`~/.ssh/id_ed25519`) if missing, and copies public keys to remote servers (`ssh-copy-id`).
 * **VS Code**: Installs Visual Studio Code (via Homebrew Cask on macOS) and interactively authenticates GitHub account sync using GitHub CLI (`gh`).
 
@@ -79,6 +80,7 @@ Available Targets:
   tailscale       Install Tailscale
   ssh             Check/generate SSH key and share to remote host (usage: make ssh USER_HOST=user@ip)
   vscode          Install Visual Studio Code
+  swap-increase   Increase swap size in GB (usage: make swap-increase SIZE=8 or make swap-increase 8)
   docker-build    Build test Linux container
   docker-test     Mount and test dev_env_automation inside clean Linux container
   docker-shell    Launch interactive shell inside clean Linux container
@@ -230,6 +232,18 @@ and check to make sure that only the key(s) you wanted were added.
 
 #### `make vscode`
 Installs Visual Studio Code (via Homebrew on macOS).
+
+#### `make swap-increase`
+Increases the swap file size on Raspberry Pi (Raspberry Pi OS / `dphys-swapfile`) or Linux systems (`/swapfile`).
+
+**Usage:**
+```bash
+# Set swap to 8 GB (positional argument)
+make swap-increase 8
+
+# Alternatively using SIZE variable
+make swap-increase SIZE=8
+```
 
 ---
 

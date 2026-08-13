@@ -225,6 +225,49 @@ setup_vscode() {
     fi
 }
 
+# --- SWAP CONFIGURATION ---
+setup_swap() {
+    local size_gb=${1:-4}
+    log_info "Configuring swap size to ${size_gb} GB..."
+
+    if [ -f /etc/rpi-issue ] || [ -f /etc/dphys-swapfile ]; then
+        log_info "Raspberry Pi (dphys-swapfile) environment detected."
+        local size_mb=$((size_gb * 1024))
+        if command -v sudo >/dev/null 2>&1; then
+            sudo dphys-swapfile swapoff || true
+            sudo sed -i "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${size_mb}/" /etc/dphys-swapfile
+            sudo dphys-swapfile setup
+            sudo dphys-swapfile swapon
+        else
+            dphys-swapfile swapoff || true
+            sed -i "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${size_mb}/" /etc/dphys-swapfile
+            dphys-swapfile setup
+            dphys-swapfile swapon
+        fi
+        log_success "Raspberry Pi swap updated to ${size_gb} GB (${size_mb} MB) via dphys-swapfile."
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        log_info "Standard Linux environment detected. Configuring swapfile..."
+        local swap_path="/swapfile"
+        local sudo_cmd=""
+        if command -v sudo >/dev/null 2>&1; then
+            sudo_cmd="sudo"
+        fi
+
+        $sudo_cmd swapoff "$swap_path" 2>/dev/null || true
+        $sudo_cmd fallocate -l "${size_gb}G" "$swap_path" 2>/dev/null || $sudo_cmd dd if=/dev/zero of="$swap_path" bs=1M count=$((size_gb * 1024)) status=progress
+        $sudo_cmd chmod 600 "$swap_path"
+        $sudo_cmd mkswap "$swap_path"
+        $sudo_cmd swapon "$swap_path"
+
+        if ! grep -q "$swap_path" /etc/fstab; then
+            echo "$swap_path none swap sw 0 0" | $sudo_cmd tee -a /etc/fstab
+        fi
+        log_success "Linux swap updated to ${size_gb} GB at ${swap_path}."
+    else
+        log_warn "Swap configuration is not supported on this OS ($(get_os))."
+    fi
+}
+
 check_vscode() {
     log_info "Checking VSCode installation & GitHub login..."
     local status=0
@@ -271,6 +314,7 @@ case "$1" in
     ssh) setup_ssh "$2" ;;
     vscode) setup_vscode ;;
     check_vscode) check_vscode ;;
+    swap) setup_swap "$2" ;;
     all)
         check_os
         setup_tmux
@@ -282,7 +326,7 @@ case "$1" in
         setup_vscode
         ;;
     *)
-        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|tailscale|ssh|vscode|check_vscode|all}"
+        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|tailscale|ssh|vscode|check_vscode|swap|all}"
         exit 1
         ;;
 esac
