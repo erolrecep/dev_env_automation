@@ -227,35 +227,52 @@ setup_vscode() {
 
 # --- SWAP CONFIGURATION ---
 setup_swap() {
-    local size_gb=${1:-4}
-    log_info "Configuring swap size to ${size_gb} GB..."
+    local target_gb=${1:-8}
+    log_info "Configuring target total swap size to ${target_gb} GB..."
 
     if command -v dphys-swapfile >/dev/null 2>&1 || [ -f /etc/dphys-swapfile ]; then
         log_info "Raspberry Pi / dphys-swapfile environment detected."
-        local size_mb=$((size_gb * 1024))
+        local target_mb=$((target_gb * 1024))
         if command -v sudo >/dev/null 2>&1; then
             sudo dphys-swapfile swapoff || true
-            sudo sed -i "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${size_mb}/" /etc/dphys-swapfile
+            sudo sed -i "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${target_mb}/" /etc/dphys-swapfile
             sudo dphys-swapfile setup
             sudo dphys-swapfile swapon
         else
             dphys-swapfile swapoff || true
-            sed -i "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${size_mb}/" /etc/dphys-swapfile
+            sed -i "s/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${target_mb}/" /etc/dphys-swapfile
             dphys-swapfile setup
             dphys-swapfile swapon
         fi
-        log_success "Swap updated to ${size_gb} GB (${size_mb} MB) via dphys-swapfile."
+        log_success "Swap configured to total ${target_gb} GB (${target_mb} MB) via dphys-swapfile."
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        log_info "Standard Linux environment detected. Configuring swapfile..."
+        log_info "Standard Linux environment detected. Adjusting total swap to ${target_gb} GB..."
         local swap_path="/swapfile"
         local sudo_cmd=""
         if command -v sudo >/dev/null 2>&1; then
             sudo_cmd="sudo"
         fi
 
+        # Turn off active swap on /swapfile first if active
         $sudo_cmd swapoff "$swap_path" 2>/dev/null || true
+
+        # Get total active swap from other sources (e.g. zram/partition) in MB
+        local existing_swap_mb=0
+        if command -v free >/dev/null 2>&1; then
+            existing_swap_mb=$(free -m | awk '/^Swap:/ {print $2}')
+        fi
+
+        local target_total_mb=$((target_gb * 1024))
+        local needed_swap_mb=$((target_total_mb - existing_swap_mb))
+
+        if [ "$needed_swap_mb" -le 0 ]; then
+            log_warn "Total swap (${existing_swap_mb} MB) already meets or exceeds target (${target_gb} GB / ${target_total_mb} MB)."
+            return 0
+        fi
+
+        log_info "Creating ${needed_swap_mb} MB file at ${swap_path} to reach ${target_gb} GB total swap..."
         $sudo_cmd rm -f "$swap_path"
-        $sudo_cmd dd if=/dev/zero of="$swap_path" bs=1M count=$((size_gb * 1024)) status=progress
+        $sudo_cmd dd if=/dev/zero of="$swap_path" bs=1M count=$needed_swap_mb status=progress
         $sudo_cmd chmod 600 "$swap_path"
         $sudo_cmd mkswap "$swap_path"
         $sudo_cmd swapon "$swap_path"
@@ -263,7 +280,7 @@ setup_swap() {
         if ! grep -q "$swap_path" /etc/fstab; then
             echo "$swap_path none swap sw 0 0" | $sudo_cmd tee -a /etc/fstab
         fi
-        log_success "Linux swap updated to ${size_gb} GB at ${swap_path}."
+        log_success "Total Linux swap adjusted to target ${target_gb} GB."
     else
         log_warn "Swap configuration is not supported on this OS ($(get_os))."
     fi

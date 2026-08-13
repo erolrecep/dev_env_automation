@@ -10,7 +10,7 @@ A modular, automated development environment installer managed via a **Makefile*
 * **Vim**: Enables smart auto-indentation, line numbers, custom python binary commands, and plugin management via [Vundle](https://github.com/VundleVim/Vundle.vim) with [Dracula Theme](https://draculatheme.com/vim).
 * **Zsh & Oh My Zsh**: Installs Zsh, redirects `~/.bashrc`, configures [Oh My Zsh](https://ohmyz.sh/), and links the Dracula Zsh theme.
 * **Tailscale**: Automated installation via Homebrew (macOS) or official installation script (Linux).
-* **Swap Management**: Dynamically increase swap memory size (e.g., `make swap-increase 8` for 8 GB). Supports Raspberry Pi (`dphys-swapfile`) and standard Linux `/swapfile`.
+* **Swap Management**: Configures total system swap memory size (e.g., `make swap-increase 8` sets total swap target to 8 GB). Supports Raspberry Pi (`dphys-swapfile`) and standard Linux `/swapfile` calculation.
 * **SSH**: Validates SSH tools, automatically generates Ed25519 keys (`~/.ssh/id_ed25519`) if missing, and copies public keys to remote servers (`ssh-copy-id`).
 * **VS Code**: Installs Visual Studio Code (via Homebrew Cask on macOS) and interactively authenticates GitHub account sync using GitHub CLI (`gh`).
 
