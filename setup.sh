@@ -333,9 +333,9 @@ setup_python3() {
         $sudo_cmd add-apt-repository -y ppa:deadsnakes/ppa 2>/dev/null || true
         $sudo_cmd apt-get update -y || true
 
-        log_info "Installing multiple Python versions via deadsnakes (python3.8 - python3.12)..."
+        log_info "Installing multiple Python versions via deadsnakes (python3.8 - python3.13)..."
         for pyver in 3.8 3.9 3.10 3.11 3.12 3.13; do
-            $sudo_cmd apt-get install -y "python${pyver}" "python${pyver}-venv" "python${pyver}-distutils" 2>/dev/null || true
+            $sudo_cmd apt-get install -y --no-install-recommends "^python${pyver}$" "^python${pyver}-venv$" "^python${pyver}-distutils$" 2>/dev/null || $sudo_cmd apt-get install -y "python${pyver}" 2>/dev/null || true
         done
     elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
         local sudo_cmd=""
