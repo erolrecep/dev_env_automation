@@ -321,6 +321,10 @@ setup_swap() {
 setup_python3() {
     log_info "Setting up Python 3, virtualenv, and virtualenvwrapper..."
     if command -v brew >/dev/null 2>&1; then
+        log_info "Installing multiple Python versions via brew (python@3.8 - python@3.13)..."
+        for pyver in 3.8 3.9 3.10 3.11 3.12 3.13; do
+            brew install "python@${pyver}" || true
+        done
         brew install python3 || true
     elif command -v apt-get >/dev/null 2>&1; then
         local sudo_cmd=""
