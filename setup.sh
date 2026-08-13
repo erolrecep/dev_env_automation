@@ -230,8 +230,8 @@ setup_swap() {
     local size_gb=${1:-4}
     log_info "Configuring swap size to ${size_gb} GB..."
 
-    if [ -f /etc/rpi-issue ] || [ -f /etc/dphys-swapfile ]; then
-        log_info "Raspberry Pi (dphys-swapfile) environment detected."
+    if command -v dphys-swapfile >/dev/null 2>&1 || [ -f /etc/dphys-swapfile ]; then
+        log_info "Raspberry Pi / dphys-swapfile environment detected."
         local size_mb=$((size_gb * 1024))
         if command -v sudo >/dev/null 2>&1; then
             sudo dphys-swapfile swapoff || true
@@ -244,7 +244,7 @@ setup_swap() {
             dphys-swapfile setup
             dphys-swapfile swapon
         fi
-        log_success "Raspberry Pi swap updated to ${size_gb} GB (${size_mb} MB) via dphys-swapfile."
+        log_success "Swap updated to ${size_gb} GB (${size_mb} MB) via dphys-swapfile."
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         log_info "Standard Linux environment detected. Configuring swapfile..."
         local swap_path="/swapfile"
