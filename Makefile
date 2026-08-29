@@ -3,7 +3,7 @@
 SHELL := /bin/bash
 SETUP_SCRIPT := ./setup.sh
 
-.PHONY: help all check check-os check-tmux check-vscode tmux vim zsh ohmyzsh tailscale ssh vscode
+.PHONY: help all check check-os check-tmux check-vscode tmux vim zsh ohmyzsh zsh-completion tailscale ssh vscode
 
 help: ## Display available commands
 	@echo "Development Environment Automation - Makefile Control Center"
@@ -42,6 +42,9 @@ zsh: ## Install Zsh and configure redirection
 
 ohmyzsh: ## Install Oh My Zsh and Dracula theme
 	@$(SETUP_SCRIPT) ohmyzsh
+
+zsh-completion: ## Configure Zsh autocompletion and menu selection
+	@$(SETUP_SCRIPT) zsh-completion
 
 tailscale: ## Install Tailscale
 	@$(SETUP_SCRIPT) tailscale

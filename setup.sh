@@ -168,7 +168,81 @@ setup_ohmyzsh() {
         sed -i '' 's/ZSH_THEME=".*"/ZSH_THEME="dracula"/g' ~/.zshrc || sed -i 's/ZSH_THEME=".*"/ZSH_THEME="dracula"/g' ~/.zshrc
     fi
 
+    setup_zsh_completion
     log_success "Oh My Zsh setup complete!"
+}
+
+setup_zsh_completion() {
+    log_info "Configuring Zsh autocompletion & menu selection..."
+    local zshrc="$HOME/.zshrc"
+    if [ ! -f "$zshrc" ]; then
+        touch "$zshrc"
+    fi
+
+    # Ensure Homebrew site-functions is loaded before oh-my-zsh
+    if ! grep -q "brew --prefix.*site-functions" "$zshrc"; then
+        local brew_fpath_block='
+# Setup Brew completion paths BEFORE Oh My Zsh initialization
+if type brew &>/dev/null; then
+    FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+fi
+'
+        local temp_file
+        temp_file=$(mktemp)
+        echo "$brew_fpath_block" > "$temp_file"
+        cat "$zshrc" >> "$temp_file"
+        mv "$temp_file" "$zshrc"
+        log_success "Added Homebrew site-functions path to top of $zshrc"
+    fi
+
+    # Ensure completion zstyle block exists after oh-my-zsh
+    if ! grep -q "Autocompletion & Menu Selection Configuration" "$zshrc"; then
+        local completion_block='
+# ==============================================================================
+# Autocompletion & Menu Selection Configuration
+# ==============================================================================
+
+# 1. Enable interactive menu selection on Tab (cycles choices on consecutive Tab presses)
+zstyle ":completion:*" menu select
+zstyle ":completion:*:*:*:*:*" menu select
+
+# 2. Prevent Zsh from stopping at exact alias matches (e.g. brew "up" alias)
+#    This forces Zsh to offer "update", "upgrade", etc., and allow cycling between them
+zstyle ":completion:*" accept-exact false
+zstyle ":completion:*:*:*:*:*" accept-exact false
+
+# 3. Strict prefix matching (case-insensitive)
+#    e.g., "brew up" matches "update" and "upgrade", but NOT "cleanup"
+zstyle ":completion:*" matcher-list "m:{a-zA-Z}={A-Za-z}"
+zstyle ":completion:*:*:*:*:*" matcher-list "m:{a-zA-Z}={A-Za-z}"
+
+# 4. Automatically append trailing slash "/" when completing directories (e.g., ./scripts -> ./scripts/)
+setopt AUTO_PARAM_SLASH
+setopt AUTO_REMOVE_SLASH
+
+# 5. Show menu and cycle choices on consecutive Tab presses
+setopt AUTO_MENU
+
+# 6. Move cursor to end of completed word and enable completion inside words
+setopt ALWAYS_TO_END
+setopt COMPLETE_IN_WORD
+
+# 7. Highlight selection in menu with colors matching LS_COLORS
+zstyle ":completion:*" list-colors "${(s.:.)LS_COLORS}"
+
+# 8. Group completion items by category
+zstyle ":completion:*" group-name ""
+zstyle ":completion:*:descriptions" format "%F{yellow}-- %d --%f"
+
+# 9. Keybindings for Tab / Shift-Tab menu navigation
+bindkey "^I" expand-or-complete
+bindkey "^[[Z" reverse-menu-complete
+'
+        echo "$completion_block" >> "$zshrc"
+        log_success "Added autocompletion & menu selection configuration to $zshrc"
+    else
+        log_info "Autocompletion configuration already present in $zshrc"
+    fi
 }
 
 # --- TAILSCALE ---
@@ -486,6 +560,7 @@ case "$1" in
     check_vim) check_vim ;;
     zsh) setup_zsh ;;
     ohmyzsh) setup_ohmyzsh ;;
+    zsh-completion) setup_zsh_completion ;;
     tailscale) setup_tailscale ;;
     ssh) setup_ssh "$2" ;;
     vscode) setup_vscode ;;
@@ -499,13 +574,14 @@ case "$1" in
         setup_vim
         setup_zsh
         setup_ohmyzsh
+        setup_zsh_completion
         setup_tailscale
         setup_ssh "$2"
         setup_vscode
         setup_python3
         ;;
     *)
-        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|tailscale|ssh|vscode|check_vscode|swap|python3-setup|python3-miniforge|all}"
+        echo "Usage: $0 {check_os|tmux|check_tmux|vim|check_vim|zsh|ohmyzsh|zsh-completion|tailscale|ssh|vscode|check_vscode|swap|python3-setup|python3-miniforge|all}"
         exit 1
         ;;
 esac
