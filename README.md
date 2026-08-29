@@ -8,7 +8,7 @@ A modular, automated development environment installer managed via a **Makefile*
 
 * **Tmux**: Sets prefix key (`Ctrl-a`), keybindings, pane/window navigation, mouse support, and automated plugin installation via [TPM](https://github.com/tmux-plugins/tpm) with [Dracula Theme](https://draculatheme.com/tmux).
 * **Vim**: Enables smart auto-indentation, line numbers, custom python binary commands, and plugin management via [Vundle](https://github.com/VundleVim/Vundle.vim) with [Dracula Theme](https://draculatheme.com/vim).
-* **Zsh & Oh My Zsh**: Installs Zsh, redirects `~/.bashrc`, configures [Oh My Zsh](https://ohmyz.sh/), and links the Dracula Zsh theme.
+* **Zsh, Oh My Zsh & Autocompletion**: Installs Zsh, redirects `~/.bashrc`, configures [Oh My Zsh](https://ohmyz.sh/), links the Dracula theme, and sets up interactive menu autocompletion (`zstyle`) with strict prefix matching, exact-match override (`accept-exact false`), and path slash expansion.
 * **Tailscale**: Automated installation via Homebrew (macOS) or official installation script (Linux).
 * **Python 3 & Virtualenvwrapper**: Installs Python 3, `virtualenv`, and `virtualenvwrapper`. Automatically configures `WORKON_HOME` and sources `virtualenvwrapper.sh` in `~/.zshrc` and `~/.bashrc` to enable `mkvirtualenv`, `lsvirtualenv`, and `workon`.
 * **Miniforge (Conda & Mamba)**: Downloads the latest architecture-specific Miniforge installer, installs it to `~/miniforge3`, and initializes shell integration for `conda` and `mamba`.
@@ -79,6 +79,7 @@ Available Targets:
   vim                  Install and configure Vim with plugins
   zsh                  Install Zsh and configure redirection
   ohmyzsh              Install Oh My Zsh and Dracula theme
+  zsh-completion       Configure Zsh autocompletion and menu selection
   tailscale            Install Tailscale
   ssh                  Check/generate SSH key and share to remote host (usage: make ssh USER_HOST=user@ip)
   vscode               Install Visual Studio Code
@@ -207,6 +208,9 @@ Installs Zsh and configures bash shell redirection in `~/.bashrc`.
 
 #### `make ohmyzsh`
 Installs Oh My Zsh and configures the Dracula theme.
+
+#### `make zsh-completion`
+Configures interactive Zsh autocompletion and menu selection in `~/.zshrc`. Sets up strict prefix matching (`matcher-list`), exact-match overrides (`accept-exact false` for aliases like `brew up`), directory trailing slash auto-insertion (`./scripts` $\rightarrow$ `./scripts/`), and Tab / Shift-Tab menu navigation keybindings.
 
 #### `make tailscale`
 Installs Tailscale using your system package manager (`brew` or `apt`).
