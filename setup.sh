@@ -237,6 +237,36 @@ zstyle ":completion:*:descriptions" format "%F{yellow}-- %d --%f"
 # 9. Keybindings for Tab / Shift-Tab menu navigation
 bindkey "^I" expand-or-complete
 bindkey "^[[Z" reverse-menu-complete
+
+# ==============================================================================
+# History & Arrow Keys Configuration
+# ==============================================================================
+
+# Enable clean history cycling with Up / Down arrow keys
+bindkey "^[[A" up-line-or-history
+bindkey "^[OA" up-line-or-history
+bindkey "\e[A" up-line-or-history
+bindkey "\eOA" up-line-or-history
+if [[ -n "${terminfo[kcuu1]}" ]]; then
+  bindkey "${terminfo[kcuu1]}" up-line-or-history
+fi
+
+bindkey "^[[B" down-line-or-history
+bindkey "^[OB" down-line-or-history
+bindkey "\e[B" down-line-or-history
+bindkey "\eOB" down-line-or-history
+if [[ -n "${terminfo[kcud1]}" ]]; then
+  bindkey "${terminfo[kcud1]}" down-line-or-history
+fi
+
+# History options
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY          # Share history across terminal sessions
+setopt HIST_IGNORE_ALL_DUPS   # Remove older duplicate entries in history
+setopt HIST_FIND_NO_DUPS      # Skip duplicates when navigating history
+setopt HIST_IGNORE_SPACE      # Don't record commands starting with space
 '
         echo "$completion_block" >> "$zshrc"
         log_success "Added autocompletion & menu selection configuration to $zshrc"
