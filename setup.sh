@@ -266,7 +266,7 @@ SAVEHIST=50000
 setopt SHARE_HISTORY          # Share history across terminal sessions
 setopt HIST_IGNORE_ALL_DUPS   # Remove older duplicate entries in history
 setopt HIST_FIND_NO_DUPS      # Skip duplicates when navigating history
-setopt HIST_IGNORE_SPACE      # Don't record commands starting with space
+setopt HIST_IGNORE_SPACE      # Do not record commands starting with space
 '
         echo "$completion_block" >> "$zshrc"
         log_success "Added autocompletion & menu selection configuration to $zshrc"
